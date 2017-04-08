@@ -1,6 +1,7 @@
 package by.epam.client.dao.impl;
 
 import by.epam.client.model.User;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @Repository
+@Scope(value = "singleton")
 public class UserDao {
     private Map<Long, User> users = new HashMap<Long, User>();
 
@@ -33,6 +35,6 @@ public class UserDao {
     }
 
     public void AddUser(User user){
-        users.put(Long.valueOf(users.keySet().size()), user);
+        users.put(Long.valueOf(users.keySet().size()) + 1, user);
     }
 }

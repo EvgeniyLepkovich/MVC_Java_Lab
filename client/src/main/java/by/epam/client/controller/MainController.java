@@ -6,29 +6,35 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 @Controller
-@SessionAttributes("user")
+@SessionAttributes("savedUser")
 public class MainController {
     @Autowired
     private UserService userService;
 
     @RequestMapping(value = {"/", "/index"}, method = RequestMethod.GET)
-    public String getIndex(){
-        return "index";
+    public ModelAndView getIndex(){
+        ModelAndView modelAndView = new ModelAndView();
+        User user = new User();
+        modelAndView.addObject("user", user);
+        modelAndView.setViewName("index");
+        return modelAndView;
     }
 
-    @RequestMapping(value = {"/saveUserInSession/{id}"}, method = RequestMethod.GET)
+    @RequestMapping(value = {"/saveUserInSession/{id}"}, method = RequestMethod.POST)
     public ModelAndView saveUserInSession(@PathVariable Long id){
         ModelAndView modelAndView = new ModelAndView();
         User user = userService.getUserById(id);
-        modelAndView.addObject("user", user);
+        modelAndView.addObject("savedUser", user);
         modelAndView.setViewName("index");
         return modelAndView;
     }
@@ -39,28 +45,29 @@ public class MainController {
         return userService.getUserById(id);
     }
 
-    @RequestMapping(value = {"/getUserAsync/{id}"}, method = RequestMethod.GET)
     @ResponseBody
-    @Async
-    public Future<User> getUserByIdAsync(@PathVariable(value = "id") long id){
-        User user = userService.getUserById(id);
-        return new AsyncResult<>(user);
+    @RequestMapping(value = {"/getUserAsync/{id}"}, method = RequestMethod.GET)
+    public User getUserByIdAsync(@PathVariable(value = "id") long id) throws InterruptedException, ExecutionException {
+        User user = userService.getUserByIdAsync(id).get();
+        return user;
     }
 
-    @RequestMapping(value = {"/getUsers/{id}"}, method = RequestMethod.GET, produces = "application/json")
+    @RequestMapping(value = {"/getUserByIdMatrix/{id}"}, method = RequestMethod.GET, produces = "application/json")
     @ResponseBody
-    public List<User> getUsersById(@MatrixVariable Map<String, Long[]> objectMap){
-        Long[] ids = objectMap.get("users");
-        return userService.getUsersById(ids);
+    public User getUserByIdMatrix(@MatrixVariable Map<String, String> objectMap){
+        Long id = Long.parseLong(objectMap.get("id"));
+        return userService.getUserById(id);
     }
 
     @RequestMapping(value = "/addUserByAjax", method = RequestMethod.POST, consumes = "application/json")
-    public void addUserByAjax(@RequestBody User user){
+    public ModelAndView addUserByAjax(@RequestBody User user){
         userService.addUser(user);
+        return getIndex();
     }
 
     @RequestMapping(value = "/addUserByForm", method = RequestMethod.POST)
-    private void addUserByForm(@ModelAttribute("user") User user){
+    public ModelAndView addUserByForm(@ModelAttribute("user") User user){
         userService.addUser(user);
+        return getIndex();
     }
 }
